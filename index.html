@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOJO - Mạng xã hội</title>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Firebase SDK v10 -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, getDocs, onSnapshot, increment, Timestamp, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+        // Cấu hình Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwTkksWVVsvGYNNN-HTTN8yM8nXRcYssg",
+            authDomain: "gojo-88c59.firebaseapp.com",
+            databaseURL: "https://gojo-88c59-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "gojo-88c59",
+            appId: "1:956383636254:web:86777a45053e1a0b5b8f3a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Export để sử dụng global
+        window.firebase = { auth, db, storage, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signOut, onAuthStateChanged, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, getDocs, onSnapshot, increment, Timestamp, serverTimestamp, ref, uploadBytes, getDownloadURL };
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f2f5;
+            overflow-x: hidden;
+        }
+
+        /* === HEADER & NAVIGATION === */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            font-style: italic;
+            color: #1877f2;
+            margin-right: auto;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+            max-width: 600px;
+        }
+
+        .nav-tab {
+            flex: 1;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: #65676b;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover {
+            background: #f2f2f2;
+        }
+
+        .nav-tab.active {
+            color: #1877f2;
+            border-bottom-color: #1877f2;
+        }
+
+        .user-profile {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .user-profile:hover {
+            background: #f2f2f2;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* === LOGIN SCREEN === */
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .login-logo {
+            font-size: 48px;
+            font-weight: 900;
+            font-style: italic;
+            color: #1877f2;
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-google {
+            background: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-google:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-facebook {
+            background: #1877f2;
+            color: white;
+        }
+
+        .btn-facebook:hover {
+            background: #166fe5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(24,119,242,0.4);
+        }
+
+        /* === MAIN CONTENT === */
+        .main-content {
+            margin-top: 56px;
+            min-height: calc(100vh - 56px);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* === FEED PAGE === */
+        .feed-container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        .post-creator {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .post-creator-input {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .post-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: #f0f2f5;
+            border-radius: 24px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #e4e6eb;
+        }
+
+        .post-action-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: #65676b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .post-action-btn:hover {
+            background: #f2f2f2;
+        }
+
+        /* === POST CARD === */
+        .post-card {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .post-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .post-author-info {
+            flex: 1;
+        }
+
+        .post-author-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #050505;
+        }
+
+        .post-time {
+            font-size: 13px;
+            color: #65676b;
+        }
+
+        .post-content {
+            padding: 0 16px 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .post-media {
+            width: 100%;
+            background: #000;
+        }
+
+        .post-media img,
+        .post-media video {
+            width: 100%;
+            display: block;
+        }
+
+        /* Album ảnh - Layout thông minh */
+        .media-grid {
+            display: grid;
+            gap: 2px;
+            background: #000;
+        }
+
+        .media-grid.count-1 {
+            grid-template-columns: 1fr;
+        }
+
+        .media-grid.count-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .media-grid.count-3 {
+            grid-template-columns: 2fr 1fr;
+        }
+
+        .media-grid.count-3 img:first-child {
+            grid-row: span 2;
+        }
+
+        .media-grid.count-4 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .media-grid img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .post-stats {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #65676b;
+            border-bottom: 1px solid #e4e6eb;
+        }
+
+        .post-interactions {
+            display: flex;
+            border-top: 1px solid #e4e6eb;
+        }
+
+        .interaction-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: #65676b;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .interaction-btn:hover {
+            background: #f2f2f2;
+        }
+
+        .interaction-btn.liked {
+            color: #1877f2;
+        }
+
+        /* === BOTTOM SHEET COMMENTS === */
+        .comment-sheet-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+
+        .comment-sheet-overlay.active {
+            display: block;
+        }
+
+        .comment-sheet {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            height: 85vh;
+            background: white;
+            border-radius: 40px 40px 0 0;
+            z-index: 2001;
+            transition: bottom 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .comment-sheet.active {
+            bottom: 0;
+        }
+
+        .comment-sheet-header {
+            padding: 20px;
+            border-bottom: 1px solid #e4e6eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .comment-sheet-title {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .close-sheet {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f2f5;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .comment-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .comment-content {
+            background: #f0f2f5;
+            padding: 12px;
+            border-radius: 18px;
+            flex: 1;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .comment-text {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .comment-input-container {
+            padding: 12px 16px;
+            border-top: 1px solid #e4e6eb;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #e4e6eb;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .send-comment-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #1877f2;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-comment-btn:disabled {
+            background: #e4e6eb;
+            color: #bcc0c4;
+        }
+
+        /* === FRIENDS & MESSENGER PAGE === */
+        .messenger-container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        .search-box {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid #e4e6eb;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .chat-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .chat-item:hover {
+            background: #f2f2f2;
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+
+        .chat-last-message {
+            font-size: 13px;
+            color: #65676b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-time {
+            font-size: 12px;
+            color: #65676b;
+        }
+
+        /* === CHAT WINDOW === */
+        .chat-window {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 1500;
+            flex-direction: column;
+        }
+
+        .chat-window.active {
+            display: flex;
+        }
+
+        .chat-header {
+            padding: 12px 16px;
+            background: white;
+            border-bottom: 1px solid #e4e6eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f2f5;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f0f2f5;
+        }
+
+        .message {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .message.own {
+            flex-direction: row-reverse;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message.own .message-bubble {
+            background: #1877f2;
+            color: white;
+        }
+
+        .message:not(.own) .message-bubble {
+            background: #e4e6eb;
+            color: #050505;
+        }
+
+        .message-input-box {
+            padding: 12px 16px;
+            border-top: 1px solid #e4e6eb;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: white;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #e4e6eb;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .send-message-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #1877f2;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* === PROFILE PAGE === */
+        .profile-container {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .profile-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .profile-avatar-large {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 16px;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .profile-gojoid {
+            font-size: 14px;
+            color: #65676b;
+            margin-bottom: 16px;
+        }
+
+        .add-friend-btn {
+            padding: 10px 24px;
+            background: #1877f2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 8px;
+        }
+
+        .logout-btn {
+            padding: 10px 24px;
+            background: #e4e6eb;
+            color: #050505;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 8px;
+        }
+
+        /* === TIME RESTRICTION MODAL === */
+        .time-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-modal.active {
+            display: flex;
+        }
+
+        .time-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 400px;
+            text-align: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .time-modal-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .time-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .time-modal-text {
+            font-size: 15px;
+            color: #65676b;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .time-modal-close {
+            padding: 12px 24px;
+            background: #1877f2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* === LOADING === */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #65676b;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .nav-tabs {
+                max-width: 100%;
+            }
+            
+            .feed-container,
+            .messenger-container,
+            .profile-container {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">GOJO</div>
+            <p style="margin-bottom: 30px; color: #65676b;">Kết nối với bạn bè và thế giới xung quanh bạn</p>
+            <button class="login-btn btn-google" onclick="loginWithGoogle()">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Đăng nhập với Google
+            </button>
+            <button class="login-btn btn-facebook" onclick="loginWithFacebook()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                Đăng nhập với Facebook
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="logo">GOJO</div>
+            <div class="nav-tabs">
+                <div class="nav-tab active" data-page="feed">
+                    <i data-lucide="home"></i>
+                </div>
+                <div class="nav-tab" data-page="messenger">
+                    <i data-lucide="message-circle"></i>
+                </div>
+                <div class="nav-tab" data-page="notifications">
+                    <i data-lucide="bell"></i>
+                </div>
+                <div class="nav-tab" data-page="profile">
+                    <i data-lucide="user"></i>
+                </div>
+            </div>
+            <div class="user-profile" onclick="showPage('profile')">
+                <img id="headerAvatar" class="user-avatar" src="" alt="Avatar">
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- FEED PAGE -->
+            <div id="feedPage" class="page active">
+                <div class="feed-container">
+                    <div class="post-creator">
+                        <div class="post-creator-input">
+                            <img id="postCreatorAvatar" class="user-avatar" src="" alt="Avatar">
+                            <input type="text" class="post-input" placeholder="Bạn đang nghĩ gì?" onclick="openPostModal()">
+                        </div>
+                        <div class="post-actions">
+                            <button class="post-action-btn" onclick="openPostModal('image')">
+                                <i data-lucide="image" style="width:20px;height:20px;color:#45bd62;"></i>
+                                Ảnh
+                            </button>
+                            <button class="post-action-btn" onclick="openPostModal('video')">
+                                <i data-lucide="video" style="width:20px;height:20px;color:#f3425f;"></i>
+                                Video
+                            </button>
+                        </div>
+                    </div>
+                    <div id="feedPosts"></div>
+                    <div class="loading" id="feedLoading">Đang tải...</div>
+                </div>
+            </div>
+
+            <!-- MESSENGER PAGE -->
+            <div id="messengerPage" class="page">
+                <div class="messenger-container">
+                    <div class="search-box">
+                        <input type="text" class="search-input" placeholder="Tìm kiếm bạn bè bằng GojoID..." id="searchFriendInput">
+                    </div>
+                    <div class="chat-list" id="chatList"></div>
+                </div>
+            </div>
+
+            <!-- NOTIFICATIONS PAGE -->
+            <div id="notificationsPage" class="page">
+                <div class="feed-container">
+                    <h2 style="padding: 20px; text-align: center; color: #65676b;">Thông báo</h2>
+                    <div id="notificationsList"></div>
+                </div>
+            </div>
+
+            <!-- PROFILE PAGE -->
+            <div id="profilePage" class="page">
+                <div class="profile-container">
+                    <div class="profile-header">
+                        <img id="profileAvatar" class="profile-avatar-large" src="" alt="Avatar">
+                        <div class="profile-name" id="profileName"></div>
+                        <div class="profile-gojoid" id="profileGojoID"></div>
+                        <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+                    </div>
+                    <div id="userPosts"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMMENT SHEET -->
+    <div class="comment-sheet-overlay" id="commentOverlay" onclick="closeCommentSheet()"></div>
+    <div class="comment-sheet" id="commentSheet">
+        <div class="comment-sheet-header">
+            <div class="comment-sheet-title">Bình luận</div>
+            <button class="close-sheet" onclick="closeCommentSheet()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="comment-list" id="commentList"></div>
+        <div class="comment-input-container">
+            <img id="commentAvatar" class="user-avatar" src="" alt="Avatar">
+            <input type="text" class="comment-input" id="commentInput" placeholder="Viết bình luận...">
+            <button class="send-comment-btn" id="sendCommentBtn" onclick="sendComment()">
+                <i data-lucide="send"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- CHAT WINDOW -->
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <button class="back-btn" onclick="closeChatWindow()">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <img id="chatUserAvatar" class="user-avatar" src="" alt="Avatar">
+            <div class="chat-info" style="flex: 1;">
+                <div class="chat-name" id="chatUserName"></div>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="message-input-box">
+            <input type="text" class="message-input" id="messageInput" placeholder="Nhập tin nhắn...">
+            <button class="send-message-btn" onclick="sendMessage()">
+                <i data-lucide="send"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- TIME RESTRICTION MODAL -->
+    <div class="time-modal" id="timeModal">
+        <div class="time-modal-content">
+            <div class="time-modal-icon">🕐</div>
+            <div class="time-modal-title">Ngoài giờ hoạt động</div>
+            <div class="time-modal-text" id="timeModalText"></div>
+            <button class="time-modal-close" onclick="closeTimeModal()">Đã hiểu</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== GLOBAL VARIABLES ====================
+        let currentUser = null;
+        let currentPostId = null;
+        let currentChatUser = null;
+        let unsubscribeFunctions = [];
+
+        // ==================== KHỞI TẠO ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // Lắng nghe trạng thái đăng nhập
+            firebase.onAuthStateChanged(firebase.auth, async (user) => {
+                if (user) {
+                    await handleUserLogin(user);
+                } else {
+                    showLoginScreen();
+                }
+            });
+
+            // Xử lý navigation tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const page = tab.dataset.page;
+                    showPage(page);
+                });
+            });
+
+            // Xử lý tìm kiếm bạn bè
+            document.getElementById('searchFriendInput').addEventListener('input', (e) => {
+                searchFriend(e.target.value);
+            });
+
+            // Xử lý enter để gửi comment
+            document.getElementById('commentInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendComment();
+            });
+
+            // Xử lý enter để gửi tin nhắn
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        });
+
+        // ==================== ĐĂNG NHẬP ====================
+        async function loginWithGoogle() {
+            try {
+                const provider = new firebase.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                await firebase.signInWithPopup(firebase.auth, provider);
+            } catch (error) {
+                console.error('Lỗi đăng nhập Google:', error);
+                alert('Đăng nhập thất bại. Vui lòng thử lại.');
+            }
+        }
+
+        async function loginWithFacebook() {
+            try {
+                const provider = new firebase.FacebookAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                await firebase.signInWithPopup(firebase.auth, provider);
+            } catch (error) {
+                console.error('Lỗi đăng nhập Facebook:', error);
+                alert('Đăng nhập thất bại. Vui lòng thử lại.');
+            }
+        }
+
+        async function handleUserLogin(user) {
+            const userDoc = await firebase.getDoc(firebase.doc(firebase.db, 'users', user.uid));
+            
+            if (!userDoc.exists()) {
+                // User mới - Tạo tài khoản
+                const gojoID = await generateUniqueGojoID();
+                await firebase.setDoc(firebase.doc(firebase.db, 'users', user.uid), {
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    email: user.email,
+                    gojoID: gojoID,
+                    friends: [],
+                    createdAt: firebase.serverTimestamp()
+                });
+            }
+
+            // Lưu thông tin user hiện tại
+            currentUser = {
+                uid: user.uid,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                email: user.email,
+                ...(await firebase.getDoc(firebase.doc(firebase.db, 'users', user.uid))).data()
+            };
+
+            showMainApp();
+            loadFeed();
+        }
+
+        async function generateUniqueGojoID() {
+            let isUnique = false;
+            let gojoID = '';
+            
+            while (!isUnique) {
+                const randomNum = Math.floor(Math.random() * 1000);
+                gojoID = `gojo_${randomNum}x`;
+                
+                const q = firebase.query(
+                    firebase.collection(firebase.db, 'users'),
+                    firebase.where('gojoID', '==', gojoID)
+                );
+                const snapshot = await firebase.getDocs(q);
+                isUnique = snapshot.empty;
+            }
+            
+            return gojoID;
+        }
+
+        async function logout() {
+            await firebase.signOut(firebase.auth);
+            unsubscribeFunctions.forEach(unsub => unsub());
+            unsubscribeFunctions = [];
+            currentUser = null;
+            showLoginScreen();
+        }
+
+        // ==================== HIỂN THỊ GIAO DIỆN ====================
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // Cập nhật avatar
+            document.getElementById('headerAvatar').src = currentUser.photoURL;
+            document.getElementById('postCreatorAvatar').src = currentUser.photoURL;
+            document.getElementById('commentAvatar').src = currentUser.photoURL;
+            document.getElementById('profileAvatar').src = currentUser.photoURL;
+            document.getElementById('profileName').textContent = currentUser.displayName;
+            document.getElementById('profileGojoID').textContent = `GojoID: ${currentUser.gojoID}`;
+            
+            lucide.createIcons();
+        }
+
+        function showPage(page) {
+            // Ẩn tất cả các trang
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            // Hiện trang được chọn
+            document.getElementById(`${page}Page`).classList.add('active');
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+            
+            // Load dữ liệu tương ứng
+            if (page === 'messenger') loadChats();
+            if (page === 'profile') loadUserPosts();
+            
+            lucide.createIcons();
+        }
+
+        // ==================== KIỂM TRA THỜI GIAN ====================
+        function checkTimeRestriction() {
+            // Kiểm tra email đặc biệt
+            if (currentUser.email === 'vtuong2104@gmail.com') {
+                return true;
+            }
+
+            const now = new Date();
+            const day = now.getDay(); // 0 = Chủ nhật, 6 = Thứ 7
+            const hours = now.getHours();
+            
+            // Thứ 7: 06:00 - 15:00
+            if (day === 6) {
+                if (hours >= 6 && hours < 15) {
+                    return true;
+                }
+            }
+            
+            // Chủ nhật: 11:00 - 20:00
+            if (day === 0) {
+                if (hours >= 11 && hours < 20) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function showTimeRestrictionModal() {
+            const now = new Date();
+            const day = now.getDay();
+            
+            let message = '';
+            if (day === 6) {
+                message = 'GOJO chỉ mở cửa vào <strong>Thứ 7 (06:00 - 15:00)</strong> và <strong>Chủ nhật (11:00 - 20:00)</strong>.<br><br>Hẹn gặp lại bạn vào cuối tuần! 😊';
+            } else if (day === 0) {
+                message = 'GOJO chỉ mở cửa vào <strong>Thứ 7 (06:00 - 15:00)</strong> và <strong>Chủ nhật (11:00 - 20:00)</strong>.<br><br>Hẹn gặp lại bạn vào cuối tuần! 😊';
+            } else {
+                message = 'GOJO chỉ mở cửa vào <strong>Thứ 7 (06:00 - 15:00)</strong> và <strong>Chủ nhật (11:00 - 20:00)</strong>.<br><br>Hẹn gặp lại bạn vào cuối tuần! 😊';
+            }
+            
+            document.getElementById('timeModalText').innerHTML = message;
+            document.getElementById('timeModal').classList.add('active');
+        }
+
+        function closeTimeModal() {
+            document.getElementById('timeModal').classList.remove('active');
+        }
+
+        // ==================== FEED - ĐĂNG BÀI & HIỂN THỊ ====================
+        async function loadFeed() {
+            const feedContainer = document.getElementById('feedPosts');
+            feedContainer.innerHTML = '';
+            
+            try {
+                // Lấy danh sách bạn bè
+                const userDoc = await firebase.getDoc(firebase.doc(firebase.db, 'users', currentUser.uid));
+                const friends = userDoc.data().friends || [];
+                
+                // Query bài đăng: Ưu tiên bài có nhiều like hoặc từ bạn bè
+                const q = firebase.query(
+                    firebase.collection(firebase.db, 'posts'),
+                    firebase.orderBy('createdAt', 'desc'),
+                    firebase.limit(20)
+                );
+                
+                const snapshot = await firebase.getDocs(q);
+                const posts = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const isFriend = friends.includes(data.authorId);
+                    const score = (data.likesCount || 0) + (isFriend ? 100 : 0);
+                    posts.push({ id: doc.id, ...data, score });
+                });
+                
+                // Sắp xếp theo score
+                posts.sort((a, b) => b.score - a.score);
+                
+                // Hiển thị bài đăng
+                posts.forEach(post => {
+                    feedContainer.appendChild(createPostCard(post));
+                });
+                
+                lucide.createIcons();
+                setupIntersectionObserver();
+                
+            } catch (error) {
+                console.error('Lỗi load feed:', error);
+            }
+            
+            document.getElementById('feedLoading').classList.add('hidden');
+        }
+
+        function createPostCard(post) {
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            
+            const isLiked = (post.likes || []).includes(currentUser.uid);
+            
+            let mediaHTML = '';
+            if (post.mediaType === 'video' && post.mediaURLs && post.mediaURLs.length > 0) {
+                mediaHTML = `<div class="post-media">
+                    <video class="post-video" data-src="${post.mediaURLs[0]}" loop muted playsinline loading="lazy">
+                        <source src="${post.mediaURLs[0]}" type="video/mp4">
+                    </video>
+                </div>`;
+            } else if (post.mediaType === 'image' && post.mediaURLs && post.mediaURLs.length > 0) {
+                const count = post.mediaURLs.length;
+                mediaHTML = `<div class="media-grid count-${Math.min(count, 4)}">`;
+                post.mediaURLs.slice(0, 4).forEach(url => {
+                    mediaHTML += `<img src="${url}" loading="lazy" alt="Post image">`;
+                });
+                mediaHTML += `</div>`;
+            }
+            
+            card.innerHTML = `
+                <div class="post-header">
+                    <img class="user-avatar" src="${post.authorPhoto}" alt="Avatar">
+                    <div class="post-author-info">
+                        <div class="post-author-name">${post.authorName}</div>
+                        <div class="post-time">${formatTime(post.createdAt)}</div>
+                    </div>
+                </div>
+                ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
+                ${mediaHTML}
+                <div class="post-stats">
+                    <span>${post.likesCount || 0} lượt thích</span>
+                    <span>${post.commentsCount || 0} bình luận</span>
+                </div>
+                <div class="post-interactions">
+                    <button class="interaction-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}')">
+                        <i data-lucide="thumbs-up"></i>
+                        <span>Thích</span>
+                    </button>
+                    <button class="interaction-btn" onclick="openCommentSheet('${post.id}')">
+                        <i data-lucide="message-circle"></i>
+                        <span>Bình luận</span>
+                    </button>
+                    <button class="interaction-btn">
+                        <i data-lucide="share-2"></i>
+                        <span>Chia sẻ</span>
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function setupIntersectionObserver() {
+            const videos = document.querySelectorAll('.post-video');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target;
+                    if (entry.isIntersecting) {
+                        if (video.dataset.src && !video.src) {
+                            video.src = video.dataset.src;
+                        }
+                        video.play().catch(e => console.log('Auto-play prevented'));
+                    } else {
+                        video.pause();
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            videos.forEach(video => observer.observe(video));
+        }
+
+        async function toggleLike(postId) {
+            if (!checkTimeRestriction()) {
+                showTimeRestrictionModal();
+                return;
+            }
+            
+            const postRef = firebase.doc(firebase.db, 'posts', postId);
+            const postDoc = await firebase.getDoc(postRef);
+            const likes = postDoc.data().likes || [];
+            
+            if (likes.includes(currentUser.uid)) {
+                await firebase.updateDoc(postRef, {
+                    likes: likes.filter(id => id !== currentUser.uid),
+                    likesCount: firebase.increment(-1)
+                });
+            } else {
+                await firebase.updateDoc(postRef, {
+                    likes: [...likes, currentUser.uid],
+                    likesCount: firebase.increment(1)
+                });
+            }
+            
+            loadFeed();
+        }
+
+        // ==================== BÌNH LUẬN ====================
+        function openCommentSheet(postId) {
+            if (!checkTimeRestriction()) {
+                showTimeRestrictionModal();
+                return;
+            }
+            
+            currentPostId = postId;
+            document.getElementById('commentOverlay').classList.add('active');
+            document.getElementById('commentSheet').classList.add('active');
+            
+            // Push state để xử lý nút Back
+            history.pushState({ commentSheet: true }, '');
+            
+            loadComments(postId);
+            lucide.createIcons();
+        }
+
+        function closeCommentSheet() {
+            document.getElementById('commentOverlay').classList.remove('active');
+            document.getElementById('commentSheet').classList.remove('active');
+            currentPostId = null;
+            
+            // Quay lại state trước đó
+            if (history.state && history.state.commentSheet) {
+                history.back();
+            }
+        }
+
+        // Xử lý nút Back vật lý
+        window.addEventListener('popstate', (e) => {
+            if (document.getElementById('commentSheet').classList.contains('active')) {
+                closeCommentSheet();
+            }
+        });
+
+        async function loadComments(postId) {
+            const commentList = document.getElementById('commentList');
+            commentList.innerHTML = '<div class="loading">Đang tải bình luận...</div>';
+            
+            const q = firebase.query(
+                firebase.collection(firebase.db, 'posts', postId, 'comments'),
+                firebase.orderBy('createdAt', 'asc')
+            );
+            
+            const snapshot = await firebase.getDocs(q);
+            commentList.innerHTML = '';
+            
+            snapshot.forEach(doc => {
+                const comment = doc.data();
+                const commentEl = document.createElement('div');
+                commentEl.className = 'comment-item';
+                commentEl.innerHTML = `
+                    <img class="user-avatar" src="${comment.authorPhoto}" alt="Avatar">
+                    <div class="comment-content">
+                        <div class="comment-author">${comment.authorName}</div>
+                        <div class="comment-text">${comment.text}</div>
+                    </div>
+                `;
+                commentList.appendChild(commentEl);
+            });
+            
+            if (snapshot.empty) {
+                commentList.innerHTML = '<div class="loading">Chưa có bình luận nào</div>';
+            }
+        }
+
+        async function sendComment() {
+            const input = document.getElementById('commentInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentPostId) return;
+            
+            if (!checkTimeRestriction()) {
+                showTimeRestrictionModal();
+                return;
+            }
+            
+            try {
+                await firebase.addDoc(firebase.collection(firebase.db, 'posts', currentPostId, 'comments'), {
+                    text: text,
+                    authorId: currentUser.uid,
+                    authorName: currentUser.displayName,
+                    authorPhoto: currentUser.photoURL,
+                    createdAt: firebase.serverTimestamp()
+                });
+                
+                await firebase.updateDoc(firebase.doc(firebase.db, 'posts', currentPostId), {
+                    commentsCount: firebase.increment(1)
+                });
+                
+                input.value = '';
+                loadComments(currentPostId);
+                loadFeed();
+            } catch (error) {
+                console.error('Lỗi gửi bình luận:', error);
+            }
+        }
+
+        // ==================== MESSENGER ====================
+        async function loadChats() {
+            const chatList = document.getElementById('chatList');
+            chatList.innerHTML = '<div class="loading">Đang tải...</div>';
+            
+            // Lấy danh sách bạn bè
+            const userDoc = await firebase.getDoc(firebase.doc(firebase.db, 'users', currentUser.uid));
+            const friends = userDoc.data().friends || [];
+            
+            if (friends.length === 0) {
+                chatList.innerHTML = '<div class="loading">Chưa có bạn bè nào</div>';
+                return;
+            }
+            
+            chatList.innerHTML = '';
+            
+            for (const friendId of friends) {
+                const friendDoc = await firebase.getDoc(firebase.doc(firebase.db, 'users', friendId));
+                if (friendDoc.exists()) {
+                    const friend = friendDoc.data();
+                    const chatEl = document.createElement('div');
+                    chatEl.className = 'chat-item';
+                    chatEl.innerHTML = `
+                        <img class="user-avatar" src="${friend.photoURL}" alt="Avatar">
+                        <div class="chat-info">
+                            <div class="chat-name">${friend.displayName}</div>
+                            <div class="chat-last-message">Nhắn tin ngay</div>
+                        </div>
+                        <div class="chat-time"></div>
+                    `;
+                    chatEl.onclick = () => openChat(friendId, friend);
+                    chatList.appendChild(chatEl);
+                }
+            }
+        }
+
+        function openChat(userId, userData) {
+            if (!checkTimeRestriction()) {
+                showTimeRestrictionModal();
+                return;
+            }
+            
+            currentChatUser = { uid: userId, ...userData };
+            document.getElementById('chatWindow').classList.add('active');
+            document.getElementById('chatUserAvatar').src = userData.photoURL;
+            document.getElementById('chatUserName').textContent = userData.displayName;
+            
+            loadMessages(userId);
+        }
+
+        function closeChatWindow() {
+            document.getElementById('chatWindow').classList.remove('active');
+            currentChatUser = null;
+        }
+
+        async function loadMessages(userId) {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+            
+            const chatId = [currentUser.uid, userId].sort().join('_');
+            
+            const q = firebase.query(
+                firebase.collection(firebase.db, 'chats', chatId, 'messages'),
+                firebase.orderBy('createdAt', 'asc')
+            );
+            
+            const unsubscribe = firebase.onSnapshot(q, (snapshot) => {
+                messagesContainer.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const messageEl = document.createElement('div');
+                    messageEl.className = `message ${msg.senderId === currentUser.uid ? 'own' : ''}`;
+                    messageEl.innerHTML = `
+                        <div class="message-bubble">${msg.text}</div>
+                    `;
+                    messagesContainer.appendChild(messageEl);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+            
+            unsubscribeFunctions.push(unsubscribe);
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentChatUser) return;
+            
+            if (!checkTimeRestriction()) {
+                showTimeRestrictionModal();
+                return;
+            }
+            
+            const chatId = [currentUser.uid, currentChatUser.uid].sort().join('_');
+            
+            try {
+                await firebase.addDoc(firebase.collection(firebase.db, 'chats', chatId, 'messages'), {
+                    text: text,
+                    senderId: currentUser.uid,
+                    receiverId: currentChatUser.uid,
+                    createdAt: firebase.serverTimestamp()
+                });
+                
+                input.value = '';
+            } catch (error) {
+                console.error('Lỗi gửi tin nhắn:', error);
+            }
+        }
+
+        async function searchFriend(gojoID) {
+            if (!gojoID.trim()) {
+                loadChats();
+                return;
+            }
+            
+            const q = firebase.query(
+                firebase.collection(firebase.db, 'users'),
+                firebase.where('gojoID', '==', gojoID.trim())
+            );
+            
+            const snapshot = await firebase.getDocs(q);
+            const chatList = document.getElementById('chatList');
+            chatList.innerHTML = '';
+            
+            if (snapshot.empty) {
+                chatList.innerHTML = '<div class="loading">Không tìm thấy người dùng</div>';
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                const chatEl = document.createElement('div');
+                chatEl.className = 'chat-item';
+                chatEl.innerHTML = `
+                    <img class="user-avatar" src="${user.photoURL}" alt="Avatar">
+                    <div class="chat-info">
+                        <div class="chat-name">${user.displayName}</div>
+                        <div class="chat-last-message">${user.gojoID}</div>
+                    </div>
+                `;
+                
+                if (doc.id !== currentUser.uid) {
+                    chatEl.onclick = () => addFriend(doc.id, user);
+                }
+                
+                chatList.appendChild(chatEl);
+            });
+        }
+
+        async function addFriend(friendId, friendData) {
+            const userRef = firebase.doc(firebase.db, 'users', currentUser.uid);
+            const userDoc = await firebase.getDoc(userRef);
+            const friends = userDoc.data().friends || [];
+            
+            if (!friends.includes(friendId)) {
+                await firebase.updateDoc(userRef, {
+                    friends: [...friends, friendId]
+                });
+                
+                const friendRef = firebase.doc(firebase.db, 'users', friendId);
+                const friendDoc = await firebase.getDoc(friendRef);
+                const friendFriends = friendDoc.data().friends || [];
+                
+                if (!friendFriends.includes(currentUser.uid)) {
+                    await firebase.updateDoc(friendRef, {
+                        friends: [...friendFriends, currentUser.uid]
+                    });
+                }
+                
+                alert('Đã thêm bạn bè thành công!');
+                loadChats();
+            } else {
+                openChat(friendId, friendData);
+            }
+        }
+
+        // ==================== PROFILE ====================
+        async function loadUserPosts() {
+            const container = document.getElementById('userPosts');
+            container.innerHTML = '<div class="loading">Đang tải...</div>';
+            
+            const q = firebase.query(
+                firebase.collection(firebase.db, 'posts'),
+                firebase.where('authorId', '==', currentUser.uid),
+                firebase.orderBy('createdAt', 'desc')
+            );
+            
+            const snapshot = await firebase.getDocs(q);
+            container.innerHTML = '';
+            
+            snapshot.forEach(doc => {
+                const post = doc.data();
+                container.appendChild(createPostCard({ id: doc.id, ...post }));
+            });
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="loading">Chưa có bài đăng nào</div>';
+            }
+            
+            lucide.createIcons();
+        }
+
+        // ==================== UTILITIES ====================
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Vừa xong';
+            
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            
+            if (diff < 60) return 'Vừa xong';
+            if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+            if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
+            
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        function openPostModal(type) {
+            if (!checkTimeRestriction()) {
+                showTimeRestrictionModal();
+                return;
+            }
+            alert('Tính năng đăng bài sẽ được cập nhật sau. Hiện tại bạn có thể xem feed và tương tác!');
+        }
+    </script>
+</body>
+</html>
