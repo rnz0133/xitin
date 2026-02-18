@@ -196,10 +196,10 @@
         const type = document.getElementById('type').value;
         const payload = {
             type,
-            title: document.getElementById('title').value.trim() || "Chưa có tiêu đề",
+            title: document.getElementById('title').value.trim() || "",
             url: document.getElementById('url').value.trim(),
             thumbnail: type === 'image' ? document.getElementById('url').value.trim() : (document.getElementById('thumb').value.trim() || document.getElementById('url').value.trim()),
-            cre: document.getElementById('cre').value.trim() || "Admin",
+            cre: document.getElementById('cre').value.trim() || "",
             timestamp: Date.now()
         };
 
